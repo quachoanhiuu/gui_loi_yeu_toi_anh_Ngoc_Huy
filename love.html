@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Love Animation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: "Poppins", system-ui, sans-serif;
+    }
+
+    /* Nền hiệu ứng mưa chữ */
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 1;
+      display: block;
+    }
+
+    /* TEXT Ở GIỮA (3,2,1 + các câu chúc) */
+    .center-text {
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      font-family: "Courier New", monospace;
+      font-size: 80px;          /* chữ chính to */
+      font-weight: 900;
+      text-align: center;
+      letter-spacing: 6px;
+      white-space: nowrap;
+      text-transform: uppercase;
+
+      /* hiệu ứng kiểu xếp bằng dấu/chấm */
+      background-image:
+        radial-gradient(circle at 1px 1px, #ffecfb 1px, transparent 0),
+        radial-gradient(circle at 1px 1px, #ffb4e9 1px, transparent 0);
+      background-size: 5px 5px, 8px 8px;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+
+      text-shadow:
+        0 0 2px #ffffff,
+        0 0 6px #ff8ccc,
+        0 0 15px #ff4b9a,
+        0 0 30px #ff007f;
+
+      opacity: 0;
+      transition: opacity .5s ease, transform .5s ease;
+      z-index: 3;
+    }
+
+    .center-text.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* TRÁI TIM TO Ở CUỐI */
+    .heart-container {
+      position: fixed;
+      top: 48%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1.3);
+      opacity: 0;
+      transition: opacity 1s ease, transform 1s ease;
+      z-index: 3;
+      pointer-events: none;
+      text-align: center;
+    }
+
+    .heart-container.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.7); /* to hẳn lên */
+    }
+
+    .heart-outline {
+      width: 540px;   /* khung tim to */
+      height: 480px;
+      margin: auto;
+      position: relative;
+    }
+
+    .heart-outline svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .heart-outline svg path {
+      stroke: #ffc6f1;
+      stroke-width: 4;
+      fill: none;
+      filter: drop-shadow(0 0 10px rgba(255, 150, 230, 1));
+      animation: heartGlow 1.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes heartGlow {
+      from {
+        stroke: #ff9cde;
+        filter: drop-shadow(0 0 6px #ff9adb);
+      }
+      to {
+        stroke: #ffffff;
+        filter:
+          drop-shadow(0 0 14px #ffe6ff)
+          drop-shadow(0 0 26px #ff5fb4);
+      }
+    }
+
+    /* Tên trong tim – không dính viền */
+    .heart-name {
+      position: absolute;
+      top: 47%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 26px;
+      font-weight: 700;
+      color: #ffe8f7;
+      text-shadow:
+        0 0 3px #fff,
+        0 0 12px #ff7fcf,
+        0 0 22px #ff3e9f;
+      white-space: nowrap;
+      animation: namePulse 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes namePulse {
+      from { transform: translate(-50%, -50%) scale(0.95); }
+      to   { transform: translate(-50%, -50%) scale(1.05); }
+    }
+
+    /* Các câu chúc bay bay ở cuối */
+    .floating-text {
+      position: fixed;
+      color: #ffd6f4;
+      font-size: 18px;
+      font-weight: 600;
+      text-shadow:
+        0 0 2px #ffffff,
+        0 0 10px rgba(255, 170, 230, 0.9);
+      z-index: 2;
+      white-space: nowrap;
+      pointer-events: none;
+      animation: floatDown 12s linear forwards;
+    }
+
+    @keyframes floatDown {
+      0% {
+        transform: translateY(-40px) translateX(0) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      50% {
+        transform: translateY(40px) translateX(15px) rotate(4deg);
+      }
+      100% {
+        transform: translateY(80px) translateX(-10px) rotate(-4deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="matrix"></canvas>
+
+<!-- Text ở giữa -->
+<div id="centerText" class="center-text"></div>
+
+<!-- Trái tim + tên -->
+<div id="heartContainer" class="heart-container">
+  <div class="heart-outline">
+    <svg viewBox="0 0 200 180">
+      <path d="M100 165
+               L40 105
+               C10 75 10 35 40 20
+               C65 7 90 20 100 35
+               C110 20 135 7 160 20
+               C190 35 190 75 160 105
+               Z"/>
+    </svg>
+    <div class="heart-name">
+      ♥ Nguyễn Phúc Thành ♥
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ========== NỀN MƯA CHỮ ========== */
+  const canvas = document.getElementById("matrix");
+  const ctx = canvas.getContext("2d");
+  const letters = "I LOVE YOU NPT ".split("");
+  let fontSize = 20;
+  let columns, drops;
+
+  function resizeMatrix() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // chữ to hơn để nổi hơn
+    fontSize = Math.floor(window.innerWidth / 55);
+    columns = Math.floor(window.innerWidth / fontSize);
+
+    // mỗi cột bắt đầu ở vị trí ngẫu nhiên để dày hơn
+    drops = Array.from({ length: columns }, () =>
+      Math.floor(Math.random() * (canvas.height / fontSize))
+    );
+  }
+
+  window.addEventListener("resize", resizeMatrix);
+  resizeMatrix();
+
+  function drawMatrix() {
+    // mờ ít thôi cho vệt dày hơn
+    ctx.fillStyle = "rgba(0, 0, 0, 0.03)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.font = fontSize + "px monospace";
+
+    for (let i = 0; i < drops.length; i++) {
+      const txt = letters[(Math.random() * letters.length) | 0];
+      const x = i * fontSize;
+      const y = drops[i] * fontSize;
+
+      // màu hồng gradient theo chiều dọc
+      const intensity = y / canvas.height; // 0 -> 1
+      const r = 255;
+      const g = 90 + intensity * 100;   // 90–190
+      const b = 160 + intensity * 80;   // 160–240
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+
+      ctx.fillText(txt, x, y);
+
+      // tăng tốc độ rơi nhẹ + dày
+      if (y > canvas.height && Math.random() > 0.95) {
+        drops[i] = 0;
+      }
+      drops[i]++;
+    }
+    requestAnimationFrame(drawMatrix);
+  }
+  drawMatrix();
+
+  /* ========== SEQUENCE CHỮ CHÍNH + TRÁI TIM + CHỮ BAY ========== */
+  const centerText = document.getElementById("centerText");
+  const heartContainer = document.getElementById("heartContainer");
+
+  const LINES = [
+    "3",
+    "2",
+    "1",
+    "Happy boy's day 19/11",
+    "Chúc anhiu của bé",
+    "luôn vui vẻ",
+    "hạnh phúc",
+    "bình an",
+    "và yêu bé nhiều hơn nhớ",
+    "Cảm ơn anh vì đã xuất hiện<br>và thương yêu em",
+    "Iu anhhh aaaaaa"
+  ];
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  function spawnFloatingMessages() {
+    const messages = [
+      "Happy boy's day 19/11",
+      "luôn vui vẻ, hạnh phúc, bình an",
+      "yêu bé nhiều hơn nữa nha",
+      "Cảm ơn anh vì đã thương em"
+    ];
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    for (let i = 0; i < 12; i++) {
+      const span = document.createElement("span");
+      span.className = "floating-text";
+      span.textContent = messages[i % messages.length];
+
+      const x = Math.random() * (vw - 260);
+      const y = Math.random() * (vh * 0.5); // nửa trên màn hình
+
+      span.style.left = x + "px";
+      span.style.top = y + "px";
+
+      document.body.appendChild(span);
+      setTimeout(() => span.remove(), 12000);
+    }
+  }
+
+  async function startSequence() {
+    const showTime = 2000; // ~2 giây mỗi câu
+    const gapTime  = 400;  // nghỉ 0.4s
+
+    for (const text of LINES) {
+      centerText.innerHTML = text;
+      centerText.classList.add("show");
+      await sleep(showTime);
+      centerText.classList.remove("show");
+      await sleep(gapTime);
+    }
+
+    // hiện trái tim
+    heartContainer.classList.add("show");
+    await sleep(3500);
+
+    // cho chữ bay bay
+    spawnFloatingMessages();
+    setTimeout(spawnFloatingMessages, 6000);
+  }
+
+  window.addEventListener("load", () => {
+    setTimeout(startSequence, 800);
+  });
+</script>
+
+</body>
+</html>
