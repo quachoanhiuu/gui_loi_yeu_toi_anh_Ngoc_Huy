@@ -22,21 +22,20 @@
       display: block;
     }
 
-    /* TEXT Ở GIỮA (3,2,1 + các câu chúc) */
+    /* TEXT Ở GIỮA (5,4,3,2,1 + các câu chúc) */
     .center-text {
       position: fixed;
       top: 40%;
       left: 50%;
       transform: translate(-50%, -50%) scale(0.8);
       font-family: "Courier New", monospace;
-      font-size: 80px;          /* chữ chính to */
+      font-size: 80px;
       font-weight: 900;
       text-align: center;
       letter-spacing: 6px;
       white-space: nowrap;
       text-transform: uppercase;
 
-      /* hiệu ứng kiểu xếp bằng dấu/chấm */
       background-image:
         radial-gradient(circle at 1px 1px, #ffecfb 1px, transparent 0),
         radial-gradient(circle at 1px 1px, #ffb4e9 1px, transparent 0);
@@ -76,11 +75,11 @@
 
     .heart-container.show {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.7); /* to hẳn lên */
+      transform: translate(-50%, -50%) scale(1.7);
     }
 
     .heart-outline {
-      width: 540px;   /* khung tim to */
+      width: 540px;
       height: 480px;
       margin: auto;
       position: relative;
@@ -113,7 +112,6 @@
       }
     }
 
-    /* Tên trong tim – không dính viền */
     .heart-name {
       position: absolute;
       top: 47%;
@@ -135,7 +133,6 @@
       to   { transform: translate(-50%, -50%) scale(1.05); }
     }
 
-    /* Các câu chúc bay bay ở cuối */
     .floating-text {
       position: fixed;
       color: #ffd6f4;
@@ -166,16 +163,39 @@
         opacity: 0;
       }
     }
+
+    /* ẢNH Ở CUỐI – phóng to giữa màn hình, che tim */
+    .final-img {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.3); /* lúc đầu nhỏ xíu */
+      width: 60vw;
+      max-width: 450px;
+      border-radius: 20px;
+      box-shadow:
+        0 0 14px rgba(255, 180, 230, 0.95),
+        0 0 30px rgba(255, 90, 180, 0.8);
+      opacity: 0;
+      transition: opacity 1.6s ease, transform 1.6s ease;
+      z-index: 5; /* cao hơn trái tim */
+    }
+
+    .final-img.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.25); /* phóng to che tim */
+    }
   </style>
 </head>
 <body>
 
+<!-- NHẠC NỀN: cố gắng tự bật -->
+<audio id="bgm" src="music.mp3" preload="auto" loop autoplay></audio>
+
 <canvas id="matrix"></canvas>
 
-<!-- Text ở giữa -->
 <div id="centerText" class="center-text"></div>
 
-<!-- Trái tim + tên -->
 <div id="heartContainer" class="heart-container">
   <div class="heart-outline">
     <svg viewBox="0 0 200 180">
@@ -193,6 +213,9 @@
   </div>
 </div>
 
+<!-- ẢNH CUỐI CÙNG – sẽ hiện SAU trái tim -->
+<img id="finalImage" src="final.png" alt="us" class="final-img" />
+
 <script>
   /* ========== NỀN MƯA CHỮ ========== */
   const canvas = document.getElementById("matrix");
@@ -205,11 +228,9 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // chữ to hơn để nổi hơn
     fontSize = Math.floor(window.innerWidth / 55);
     columns = Math.floor(window.innerWidth / fontSize);
 
-    // mỗi cột bắt đầu ở vị trí ngẫu nhiên để dày hơn
     drops = Array.from({ length: columns }, () =>
       Math.floor(Math.random() * (canvas.height / fontSize))
     );
@@ -219,7 +240,6 @@
   resizeMatrix();
 
   function drawMatrix() {
-    // mờ ít thôi cho vệt dày hơn
     ctx.fillStyle = "rgba(0, 0, 0, 0.03)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -230,16 +250,14 @@
       const x = i * fontSize;
       const y = drops[i] * fontSize;
 
-      // màu hồng gradient theo chiều dọc
-      const intensity = y / canvas.height; // 0 -> 1
+      const intensity = y / canvas.height;
       const r = 255;
-      const g = 90 + intensity * 100;   // 90–190
-      const b = 160 + intensity * 80;   // 160–240
+      const g = 90 + intensity * 100;
+      const b = 160 + intensity * 80;
       ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
 
       ctx.fillText(txt, x, y);
 
-      // tăng tốc độ rơi nhẹ + dày
       if (y > canvas.height && Math.random() > 0.95) {
         drops[i] = 0;
       }
@@ -249,11 +267,14 @@
   }
   drawMatrix();
 
-  /* ========== SEQUENCE CHỮ CHÍNH + TRÁI TIM + CHỮ BAY ========== */
+  /* ========== SEQUENCE CHỮ CHÍNH + TRÁI TIM + ẢNH + CHỮ BAY ========== */
   const centerText = document.getElementById("centerText");
   const heartContainer = document.getElementById("heartContainer");
+  const finalImage = document.getElementById("finalImage");
 
   const LINES = [
+    "5",
+    "4",
     "3",
     "2",
     "1",
@@ -288,7 +309,7 @@
       span.textContent = messages[i % messages.length];
 
       const x = Math.random() * (vw - 260);
-      const y = Math.random() * (vh * 0.5); // nửa trên màn hình
+      const y = Math.random() * (vh * 0.5);
 
       span.style.left = x + "px";
       span.style.top = y + "px";
@@ -299,27 +320,46 @@
   }
 
   async function startSequence() {
-    const showTime = 2000; // ~2 giây mỗi câu
-    const gapTime  = 400;  // nghỉ 0.4s
+    const showTime = 2000;
+    const gapTime  = 400;
 
+    // chạy từng dòng: 5,4,3,2,1, rồi chữ chúc
     for (const text of LINES) {
       centerText.innerHTML = text;
       centerText.classList.add("show");
-      await sleep(showTime);
+
+      // riêng câu "Chúc anhiu của bé" đứng lâu hơn 1s
+      const extra = (text === "Chúc anhiu của bé") ? 1000 : 0;
+      await sleep(showTime + extra);
+
       centerText.classList.remove("show");
       await sleep(gapTime);
     }
 
-    // hiện trái tim
+    // hiện trái tim to trước
     heartContainer.classList.add("show");
-    await sleep(3500);
+    await sleep(2500);
 
-    // cho chữ bay bay
+    // SAU ĐÓ: hiện ảnh phóng to ở giữa và làm tim mờ đi
+    finalImage.classList.add("show");
+    heartContainer.style.opacity = 0.25; // muốn tim biến mất luôn thì = 0
+    await sleep(1500);
+
+    // rồi mới cho chữ bay bay
     spawnFloatingMessages();
     setTimeout(spawnFloatingMessages, 6000);
   }
 
+  // Cố gắng bật nhạc + chạy sequence
   window.addEventListener("load", () => {
+    const bgm = document.getElementById("bgm");
+    if (bgm) {
+      bgm.volume = 0.8;
+      bgm.play().catch(() => {
+        console.warn("Trình duyệt chặn autoplay nhạc.");
+      });
+    }
+
     setTimeout(startSequence, 800);
   });
 </script>
